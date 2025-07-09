@@ -1,0 +1,52 @@
+ flask:
+    container_name: flask
+    hostname: flask
+    build: 
+      context: ./app/frontend
+    volumes:
+      - ./frontend/app.py:/app/app.py
+      - ./frontend/static:/app/static
+      - ./frontend/templates:/app/templates
+    environment:
+      - BROKER_IP=192.168.98.19  # Correct broker IP
+      - BROKER_PORT=1883         # Match the broker's port
+      - RSU_ID=4 
+      - ZONE=[(40.61801, -8.77769), (40.61801, -8.76308), (40.61601, -8.76308),  (40.61601, -8.77769), (40.61801, -8.77769)] 
+    ports:
+      - "5000:5000"
+    networks:
+      vanetzalan0:
+        ipv4_address: 192.168.98.99
+    depends_on:
+      - boat1_broker
+      - boat2_broker
+      - boat3_broker
+      - flask_broker
+    restart: always
+    logging:
+      driver: none
+
+
+ flask_broker:
+    hostname: flsk_brk
+    container_name: flsk_brk
+    restart: always
+    image: code.nap.av.it.pt:5050/mobility-networks/vanetza:latest
+    cap_add:
+      - "NET_ADMIN"
+    environment:
+      - VANETZA_STATION_ID=50
+      - VANETZA_STATION_TYPE=15
+      - VANETZA_MAC_ADDRESS=6e:06:e0:03:00:09
+      - VANETZA_INTERFACE=br0
+      - START_EMBEDDED_MOSQUITTO=true
+      - SUPPORT_MAC_BLOCKING=true
+      - VANETZA_CAM_PERIODICITY=0
+    networks:
+      vanetzalan0:
+        ipv4_address: 192.168.98.19
+    sysctls:
+      kernel.msgmax: 65536
+      kernel.msgmnb: 65536
+    logging:
+      driver: none

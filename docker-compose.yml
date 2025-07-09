@@ -1,0 +1,164 @@
+version: '3.8'
+
+services:
+  boat1_broker:
+    hostname: broker1
+    container_name: boat1_broker
+    restart: always
+    image: code.nap.av.it.pt:5050/mobility-networks/vanetza:latest
+    cap_add:
+      - "NET_ADMIN"
+    environment:
+      - VANETZA_STATION_ID=51
+      - VANETZA_STATION_TYPE=15
+      - VANETZA_MAC_ADDRESS=6e:06:e0:03:00:01
+      - VANETZA_INTERFACE=br0
+      - START_EMBEDDED_MOSQUITTO=true
+      - SUPPORT_MAC_BLOCKING=true
+    networks:
+      vanetzalan0:
+        ipv4_address: 192.168.98.10
+    sysctls:
+      kernel.msgmax: 65536
+      kernel.msgmnb: 65536
+    logging:
+      driver: none
+
+  boat2_broker:
+    hostname: broker2
+    container_name: boat2_broker
+    restart: always
+    image: code.nap.av.it.pt:5050/mobility-networks/vanetza:latest
+    cap_add:
+      - "NET_ADMIN"
+    environment:
+      - VANETZA_STATION_ID=52
+      - VANETZA_STATION_TYPE=15
+      - VANETZA_MAC_ADDRESS=6e:06:e0:03:00:02
+      - VANETZA_INTERFACE=br0
+      - START_EMBEDDED_MOSQUITTO=true
+      - SUPPORT_MAC_BLOCKING=true
+    networks:
+      vanetzalan0:
+        ipv4_address: 192.168.98.11
+    sysctls:
+      kernel.msgmax: 65536
+      kernel.msgmnb: 65536
+    logging:
+      driver: none
+
+ 
+  boat3_broker:
+    hostname: broker3
+    container_name: boat3_broker
+    restart: always
+    image: code.nap.av.it.pt:5050/mobility-networks/vanetza:latest
+    cap_add:
+      - "NET_ADMIN"
+    environment:
+      - VANETZA_STATION_ID=53
+      - VANETZA_STATION_TYPE=15
+      - VANETZA_MAC_ADDRESS=6e:06:e0:03:00:03
+      - VANETZA_INTERFACE=br0
+      - START_EMBEDDED_MOSQUITTO=true
+      - SUPPORT_MAC_BLOCKING=true
+    networks:
+      vanetzalan0:
+        ipv4_address: 192.168.98.12
+    sysctls:
+      kernel.msgmax: 65536
+      kernel.msgmnb: 65536
+    logging:
+      driver: none
+
+  rsu_broker:
+    hostname: rsu_broker
+    container_name: rsu_broker
+    restart: always
+    image: code.nap.av.it.pt:5050/mobility-networks/vanetza:latest
+    cap_add:
+      - "NET_ADMIN"
+    environment:
+      - VANETZA_STATION_ID=54
+      - VANETZA_STATION_TYPE=15
+      - VANETZA_MAC_ADDRESS=6e:06:e0:03:00:04
+      - VANETZA_INTERFACE=br0
+      - START_EMBEDDED_MOSQUITTO=true
+      - SUPPORT_MAC_BLOCKING=true
+    networks:
+      vanetzalan0:
+        ipv4_address: 192.168.98.13
+    sysctls:
+      kernel.msgmax: 65536
+      kernel.msgmnb: 65536
+    logging:
+      driver: none
+
+  boat1:
+    hostname: boat1
+    container_name: boat1
+    build:
+      context: ./app/boat
+    environment:
+      - BOAT_ID=1
+      - BROKER_IP=192.168.98.10
+      - START_POINT=40.61781,-8.776229
+      - MQTT_IP=192.168.98.13
+    networks:
+      vanetzalan0:
+        ipv4_address: 192.168.98.20
+    depends_on:
+      - boat1_broker
+
+  boat2:
+    hostname: boat2
+    container_name: boat2
+    build:
+      context: ./app/boat
+    environment:
+      - BOAT_ID=2
+      - BROKER_IP=192.168.98.11
+      - START_POINT=40.61781,-8.771846
+      - MQTT_IP=192.168.98.13
+    networks:
+      vanetzalan0:
+        ipv4_address: 192.168.98.30
+    depends_on:
+      - boat2_broker
+
+  boat3:
+    hostname: boat3
+    container_name: boat3
+    build:
+      context: ./app/boat
+    environment:
+      - BOAT_ID=3
+      - BROKER_IP=192.168.98.12
+      - START_POINT=40.61781,-8.767463
+      - MQTT_IP=192.168.98.13
+    networks:
+      vanetzalan0:
+        ipv4_address: 192.168.98.40
+    depends_on:
+      - boat3_broker
+
+  rsu:
+    hostname: rsu
+    container_name: rsu
+    build:
+      context: ./app/rsu
+    environment:
+      - RSU_ID=4
+      - BROKER_IP=192.168.98.13
+      - MQTT_IP=192.168.98.13
+    networks:
+      vanetzalan0:
+        ipv4_address: 192.168.98.50
+    depends_on:
+      - rsu_broker
+    ports:
+      - "8000:8000"
+
+networks:
+  vanetzalan0:
+    external: true

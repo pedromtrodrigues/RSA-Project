@@ -1,0 +1,9 @@
+Flask-Login==0.6
+Flask-WTF==1.2.1
+paho-mqtt==1.6.1
+Flask-MQTT==1.1.1
+werkzeug==3.0.1 
+flask_limiter 
+Jinja2>3.1.2
+itsdangerous>=2.1.2
+click>=8.1.3

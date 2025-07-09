@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Boat Tracker</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <style>
+    #map {
+      height: 500px;
+      width: 100%;
+      margin-top: 20px;
+      border: 1px solid #ccc;
+    }
+  </style>
+</head>
+<body>
+  <h1>Live Boat Tracker</h1>
+
+  <div style="display: flex; height: 90vh;">
+    <!-- LEFT: Text info -->
+    <div style="width: 40%; padding: 10px; overflow-y: auto;">
+      <div id="boats"></div>
+      <div id="victims"></div>
+      <div id="ongoing_victims"></div>
+      <div id="captured_victims"></div>
+    </div>
+
+    <!-- RIGHT: Map -->
+    <div style="flex: 1;">
+      <div id="map"></div>
+    </div>
+  </div>
+
+  <script>
+    const boatIcon = L.icon({
+      iconUrl: "/static/icons/boat.png",
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+      popupAnchor: [0, -16]
+    });
+
+    const map = L.map('map').setView([40.6178, -8.7720], 15);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    let boatMarkers = {};
+    let victimMarkers = {};
+    let boatPaths = {};
+    let pathLines = {};
+
+    const socket = io();
+
+    socket.on("update", function(data) {
+      // Update boat info
+      document.getElementById("boats").innerHTML =
+        "<h2>Boats:</h2>" +
+        Object.entries(data.boats).map(([id, pos]) =>
+          `<p>Boat ${id}: ${pos[0].toFixed(5)}, ${pos[1].toFixed(5)}</p>`
+        ).join("");
+
+      // Update victim info
+      document.getElementById("victims").innerHTML =
+        "<h2>Uncaptured Victims:</h2>" +
+        data.victims.map(v =>
+          `<p>Victim ${v.id}: ${v.lat.toFixed(5)}, ${v.lon.toFixed(5)}</p>`
+        ).join("");
+
+      document.getElementById("ongoing_victims").innerHTML =
+        "<h2>Ongoing Rescues:</h2>" +
+        data.ongoing_victims.map(v =>
+          `<p>Victim ${v.id} is being rescued by Boat ${v.rescued_by} at ${v.lat.toFixed(5)}, ${v.lon.toFixed(5)}</p>`
+        ).join("");
+
+      document.getElementById("captured_victims").innerHTML =
+        "<h2>Captured Victims:</h2>" +
+        data.captured_victims.map(v =>
+          `<p>Victim ${v.id} (captured by Boat ${v.captured_by}): ${v.lat.toFixed(5)}, ${v.lon.toFixed(5)}</p>`
+        ).join("");
+
+      // Update boat markers
+      Object.entries(data.boats).forEach(([id, pos]) => {
+        const [lat, lon] = pos;
+
+        if (boatMarkers[id]) {
+          boatMarkers[id].setLatLng([lat, lon]);
+        } else {
+          boatMarkers[id] = L.marker([lat, lon], { icon: boatIcon, title: `Boat ${id}` })
+            .addTo(map)
+            .bindPopup(`Boat ${id}`);
+        }
+
+        if (!boatPaths[id]) {
+          boatPaths[id] = [];
+        }
+        boatPaths[id].push([lat, lon]);
+
+        if (pathLines[id]) {
+          map.removeLayer(pathLines[id]);
+        }
+
+        pathLines[id] = L.polyline(boatPaths[id], {
+          color: 'blue',
+          weight: 3
+        }).addTo(map);
+      });
+
+      // Update victim markers (all states in one loop)
+      Object.values(victimMarkers).forEach(marker => map.removeLayer(marker));
+      victimMarkers = {};
+
+      data.victims.forEach(v => {
+        let color = 'red';
+        let popup = `Victim ${v.id}`;
+
+        const ongoing = data.ongoing_victims.find(ov => ov.id === v.id);
+        const captured = data.captured_victims.find(cv => cv.id === v.id);
+
+        if (captured) {
+          color = 'green';
+          popup += ` (captured by Boat ${captured.captured_by})`;
+        } else if (ongoing) {
+          color = 'yellow';
+          popup += ` (being rescued by Boat ${ongoing.rescued_by})`;
+        }
+
+        victimMarkers[v.id] = L.circleMarker([v.lat, v.lon], {
+          radius: 6,
+          color: color
+        }).addTo(map).bindPopup(popup);
+      });
+    });
+  </script>
+</body>
+</html>
